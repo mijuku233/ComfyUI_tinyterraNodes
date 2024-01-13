@@ -254,7 +254,7 @@ app.registerExtension({
                               align-items: end;
 			      align-items: flex-start;
                               display:flex;position: absolute; 
-                              top: 0px; left: 0px; width: 180px;
+                              top: 2px; left: 2px; width: 180px;
                               border-radius:12px;
                               min-height:100px; 
                               max-height:400px;
@@ -347,7 +347,7 @@ app.registerExtension({
                                 })
                                 buttons.append(go_btn)
                                 let see_btn = document.createElement('button')
-                                let defaultStyle = `cursor:pointer;font-size:10px;;padding:2px;border: 1px solid var(--border-color);border-radius:4px;width:36px;`
+                                let defaultStyle = `cursor:pointer;font-size:10px;;padding:2px;border: 1px solid var(--border-color);border-radius:4px;`
                                 see_btn.style = isGroupMute ? `background-color:var(--error-text);color:var(--input-text);` + defaultStyle : (isGroupShow ? `background-color:#006691;color:var(--input-text);` + defaultStyle : `background-color: var(--comfy-input-bg);color:var(--descrip-text);` + defaultStyle)
                                 see_btn.innerText = isGroupMute ? mute_text : (isGroupShow ? show_text : hide_text)
                                 let pressTimer
