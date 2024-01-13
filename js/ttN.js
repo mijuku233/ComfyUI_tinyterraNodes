@@ -252,8 +252,9 @@ app.registerExtension({
                         div.style = `
                               flex-direction: column;
                               align-items: end;
+			      align-items: flex-start;
                               display:flex;position: absolute; 
-                              top: 50px; left: 10px; width: 180px;
+                              down: 0px; right: 0px; width: 180px;
                               border-radius:12px;
                               min-height:100px; 
                               max-height:400px;
