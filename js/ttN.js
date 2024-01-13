@@ -30,7 +30,25 @@ function hideWidget(node, widget, suffix = "") {
 		}
 	}
 }
-
+function deepEqual (obj1, obj2) {
+  if (typeof obj1 !== typeof obj2) {
+    return false
+  }
+  if (typeof obj1 !== 'object' || obj1 === null || obj2 === null) {
+    return obj1 === obj2
+  }
+  const keys1 = Object.keys(obj1)
+  const keys2 = Object.keys(obj2)
+  if (keys1.length !== keys2.length) {
+    return false
+  }
+  for (let key of keys1) {
+    if (!deepEqual(obj1[key], obj2[key])) {
+      return false
+    }
+  }
+  return true
+}
 function convertToInput(node, widget, config) {
     console.log('config:', config)
 	hideWidget(node, widget);
@@ -209,6 +227,198 @@ app.registerExtension({
                                 ttNreloadNode(graphcanvas.selected_nodes[i]);
                             }
                         }
+                    }
+                }
+            );
+            return options;
+        };
+
+        // Canvas Menu
+        const getCanvasMenuOptions = LGraphCanvas.prototype.getCanvasMenuOptions;
+        LGraphCanvas.prototype.getCanvasMenuOptions = function () {
+            const options = getCanvasMenuOptions.apply(this, arguments);
+            options.push(null,
+                {
+                    content: "📜Groups Map (EasyUse)",
+                    callback: () => {
+                        const locale = localStorage['AGL.Locale'] || localStorage['Comfy.Settings.AGL.Locale'] || 'en-US'
+                        const groups = app.canvas.graph._groups
+                        let nodes = app.canvas.graph._nodes
+                        let groups_len = groups.length
+                        let div =
+                            document.querySelector('#easyuse_groups_map') ||
+                            document.createElement('div')
+                        div.id = 'easyuse_groups_map'
+                        div.style = `
+                              flex-direction: column;
+                              align-items: end;
+                              display:flex;position: absolute; 
+                              top: 50px; left: 10px; width: 180px;
+                              border-radius:12px;
+                              min-height:100px; 
+                              max-height:400px;
+                              color: var(--descrip-text);
+                              background-color: var(--comfy-menu-bg);
+                              padding: 10px 4px; 
+                              border: 1px solid var(--border-color);z-index: 999999999;padding-top: 0;`
+
+                        div.innerHTML = ''
+                        let btn = document.createElement('div')
+                        btn.style = `display: flex;
+                            width: calc(100% - 8px);
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: 0 6px;
+                            height: 44px;`
+                        let hideBtn = document.createElement('button')
+                        let textB = document.createElement('p')
+                        btn.appendChild(textB)
+                        btn.appendChild(hideBtn)
+                        textB.style.fontSize = '11px'
+                        textB.innerHTML =  locale == 'zh-CN' ? `<b>管理组 (EasyUse)</b>` : `<b>Groups Map (EasyUse)</b>`
+                        hideBtn.style = `float: right;color: var(--input-text);border-radius:6px;font-size:9px;
+                            background-color: var(--comfy-input-bg); border: 1px solid var(--border-color);cursor: pointer;padding: 5px;aspect-ratio: 1 / 1;`
+                        hideBtn.addEventListener('click', () => {div.style.display = 'none'})
+                        hideBtn.innerText = '❌'
+                        div.appendChild(btn)
+
+                        div.addEventListener('mousedown', function (e) {
+                            var startX = e.clientX
+                            var startY = e.clientY
+                            var offsetX = div.offsetLeft
+                            var offsetY = div.offsetTop
+
+                            function moveBox (e) {
+                              var newX = e.clientX
+                              var newY = e.clientY
+                              var deltaX = newX - startX
+                              var deltaY = newY - startY
+                              div.style.left = offsetX + deltaX + 'px'
+                              div.style.top = offsetY + deltaY + 'px'
+                            }
+
+                            function stopMoving () {
+                              document.removeEventListener('mousemove', moveBox)
+                              document.removeEventListener('mouseup', stopMoving)
+                            }
+
+                            document.addEventListener('mousemove', moveBox)
+                            document.addEventListener('mouseup', stopMoving)
+                        })
+
+                        function updateGroups(groups, groupsDiv){
+                            for (let index in groups) {
+                                const group = groups[index]
+                                const title = group.title
+                                const show_text = locale == 'zh-CN' ? '启用中' : 'Always'
+                                const hide_text = locale == 'zh-CN' ? '已忽略' : 'Bypass'
+                                const mute_text = locale == 'zh-CN' ? '已停用' : 'Never'
+                                let group_item = document.createElement('div')
+                                let group_item_style = `justify-content: space-between;display:flex;background-color: var(--comfy-input-bg);border-radius: 5px;border:1px solid var(--border-color);margin-top:5px;`
+                                group_item.addEventListener("mouseover",event=>{
+                                    event.preventDefault()
+                                    group_item.style = group_item_style + "filter:brightness(1.2);"
+                                })
+                                group_item.addEventListener("mouseleave",event=>{
+                                    event.preventDefault()
+                                    group_item.style = group_item_style + "filter:brightness(1);"
+                                })
+                                group_item.style = group_item_style
+                                // 标题
+                                let text_group_title = document.createElement('div')
+                                text_group_title.style = `flex:1;font-size:12px;color:var(--input-text);padding:4px;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;`
+                                text_group_title.innerHTML = `${title}`
+                                group_item.append(text_group_title)
+                                // 按钮组
+                                let buttons = document.createElement('div')
+                                group.recomputeInsideNodes();
+                                const nodesInGroup = group._nodes;
+                                let isGroupShow = nodesInGroup && nodesInGroup.length>0 && nodesInGroup[0].mode == 0
+                                let isGroupMute = nodesInGroup && nodesInGroup.length>0 && nodesInGroup[0].mode == 2
+                                let go_btn = document.createElement('button')
+                                go_btn.style = "margin-right:6px;cursor:pointer;font-size:10px;padding:2px 4px;color:var(--input-text);background-color: var(--comfy-input-bg);border: 1px solid var(--border-color);border-radius:4px;"
+                                go_btn.innerText = "Go"
+                                go_btn.addEventListener('click', () => {
+                                    app.canvas.ds.offset[0] =  -group.pos[0] - group.size[0] * 0.5 + (app.canvas.canvas.width * 0.5) / app.canvas.ds.scale;
+                                    app.canvas.ds.offset[1] = -group.pos[1] - group.size[1] * 0.5 + (app.canvas.canvas.height * 0.5) / app.canvas.ds.scale;
+                                    app.canvas.setDirty(true, true);
+                                    app.canvas.setZoom(1)
+                                })
+                                buttons.append(go_btn)
+                                let see_btn = document.createElement('button')
+                                let defaultStyle = `cursor:pointer;font-size:10px;;padding:2px;border: 1px solid var(--border-color);border-radius:4px;width:36px;`
+                                see_btn.style = isGroupMute ? `background-color:var(--error-text);color:var(--input-text);` + defaultStyle : (isGroupShow ? `background-color:#006691;color:var(--input-text);` + defaultStyle : `background-color: var(--comfy-input-bg);color:var(--descrip-text);` + defaultStyle)
+                                see_btn.innerText = isGroupMute ? mute_text : (isGroupShow ? show_text : hide_text)
+                                let pressTimer
+                                let firstTime =0, lastTime =0
+                                let isHolding = false
+                                see_btn.addEventListener('click', () => {
+                                    if(isHolding){
+                                        isHolding = false
+                                        return
+                                    }
+                                    for (const node of nodesInGroup) {
+                                        node.mode = isGroupShow ? 4 : 0;
+                                        node.graph.change();
+                                    }
+                                    isGroupShow = nodesInGroup[0].mode == 0 ? true : false
+                                    isGroupMute = nodesInGroup[0].mode == 2 ? true : false
+                                    see_btn.style = isGroupMute ? `background-color:var(--error-text);color:var(--input-text);` + defaultStyle : (isGroupShow ? `background-color:#006691;color:var(--input-text);` + defaultStyle : `background-color: var(--comfy-input-bg);color:var(--descrip-text);` + defaultStyle)
+                                    see_btn.innerText = isGroupMute ? mute_text : (isGroupShow ? show_text : hide_text)
+                                })
+                                see_btn.addEventListener('mousedown', () => {
+                                    firstTime = new Date().getTime();
+                                    clearTimeout(pressTimer);
+                                    pressTimer = setTimeout(_=>{
+                                        for (const node of nodesInGroup) {
+                                            node.mode = isGroupMute ? 0 : 2;
+                                            node.graph.change();
+                                        }
+                                        isGroupShow = nodesInGroup[0].mode == 0 ? true : false
+                                        isGroupMute = nodesInGroup[0].mode == 2 ? true : false
+                                        see_btn.style = isGroupMute ? `background-color:var(--error-text);color:var(--input-text);` + defaultStyle : (isGroupShow ? `background-color:#006691;color:var(--input-text);` + defaultStyle : `background-color: var(--comfy-input-bg);color:var(--descrip-text);` + defaultStyle)
+                                        see_btn.innerText = isGroupMute ? mute_text : (isGroupShow ? show_text : hide_text)
+                                    },500)
+                                })
+                                see_btn.addEventListener('mouseup', () => {
+                                    lastTime = new Date().getTime();
+                                    if(lastTime - firstTime > 500) isHolding = true
+                                    clearTimeout(pressTimer);
+                                })
+                                buttons.append(see_btn)
+                                group_item.append(buttons)
+
+                                groupsDiv.append(group_item)
+                            }
+
+                        }
+
+                        let groupsDiv =  document.createElement('div')
+                        groupsDiv.style = `overflow-y: auto;max-height: 400px;height:100%;width: 100%;`
+
+                        updateGroups(groups, groupsDiv)
+
+                        div.appendChild(groupsDiv)
+
+                        let remarkDiv =  document.createElement('p')
+                        remarkDiv.style = `text-align:center; font-size:10px; padding:0 10px;color:var(--descrip-text)`
+                        remarkDiv.innerText = locale == 'zh-CN' ? "长按设置为静音" : "LongPress set to never"
+                        div.appendChild(groupsDiv)
+                        div.appendChild(remarkDiv)
+
+                        let graphDiv = document.getElementById("graph-canvas")
+                        graphDiv.addEventListener('mouseover', async () => {
+                            let n = (await app.graphToPrompt()).output
+                            if (!deepEqual(n, nodes)) {
+                              groupsDiv.innerHTML = ``
+                              let new_groups = app.canvas.graph._groups
+                              updateGroups(new_groups, groupsDiv)
+                            }
+                        })
+                        if (!document.querySelector('#easyuse_groups_map')){
+                            document.body.appendChild(div)
+                        }
+
                     }
                 },
             );
