@@ -254,7 +254,7 @@ app.registerExtension({
                               align-items: end;
 			      align-items: flex-start;
                               display:flex;position: absolute; 
-                              down: 0px; right: 0px; width: 180px;
+                              top: 0px; left: 0px; width: 180px;
                               border-radius:12px;
                               min-height:100px; 
                               max-height:400px;
